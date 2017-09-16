@@ -27,8 +27,8 @@ worksheet.write_string(outputRow,8,"diagnostic",formatTitle)
 
 worksheet.freeze_panes(1, 0)
 
-with open("TESTDATA.txt") as target:
-#with open("ALLDATA.txt") as target:
+#with open("TESTDATA.txt") as target:
+with open("ALLDATA.txt") as target:
     for line in target:
         match = re.match("Rapport anatomo-pathologique\s+Examen N°\s+(?P<sampleID>H\d{7})", line)
         if not match:
@@ -59,42 +59,40 @@ with open("TESTDATA.txt") as target:
         worksheet.write_datetime(outputRow,5,sampleDate,formatDate)
         worksheet.write_number(outputRow,6,ageAtSampling)
         
-        match = False
-        while not match:
+        diagnostic = False      
+        clinical = False
+        while not (diagnostic and clinical):
             line = next(target)
             if re.match("tél: 0", line):
-                print("Broken record for name: %s" % name)
-                break                
-            match = re.match("Diagnostic :", line)
-        if not match:
-            continue
-        lineList = ""
-        nextLine = next(target)
-        while nextLine != "\n":
-            lineList += nextLine
-            nextLine = next(target)
-        diagnostic = lineList
+                break
+            
+            if re.match("Diagnostic :", line):
+                lineList = ""
+                nextLine = next(target)
+                while not re.match("\s*\n", nextLine):
+                    lineList += nextLine
+                    nextLine = next(target)
+                diagnostic = lineList
+            
+            if re.match("Renseignements cliniques :", line):
+                lineList = ""
+                nextLine = next(target)
+                while not re.match("\s*\n", nextLine):
+                    lineList += nextLine
+                    nextLine = next(target)
+                clinical = lineList
 
-        match = False
-        while not match:
-            line = next(target)
-            if re.match("tél: 0", line):
-                print("Broken record for name: %s" % name)
-                break                
-            match = re.match("Renseignements cliniques :", line)
-        if not match:
-            continue
-        lineList = ""
-        nextLine = next(target)
-        while nextLine != "\n":
-            lineList += nextLine
-            nextLine = next(target)
-        clinical = lineList
+        if not (diagnostic and clinical):
+            print("Broken record for name: %s" % name)
+            print("<<<<%s>>>>" % clinical)
+            print("<<<<%s>>>>" % diagnostic)
+            continue;
+
 
         worksheet.write_string(outputRow,7,clinical)
         worksheet.write_string(outputRow,8,diagnostic)
 
-        print("name:%s"%name)
+        #print("name:%s"%name)
 
 worksheet.autofilter(0,0,outputRow,8)
 
